@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Viewer</title>
+  <link rel="stylesheet" href="style.css?v=3">
+  <style>
+    body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: #f3f4f6; }
+    .viewer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 25px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      z-index: 10;
+    }
+    .back-btn {
+      padding: 8px 16px; border: none; background: var(--primary); color: white; border-radius: 6px; cursor: pointer; font-weight: 500; font-family: inherit; font-size: 0.95rem; text-decoration: none;
+    }
+    
+    .progress-wrapper { flex: 1; max-width: 500px; margin: 0 30px; }
+    .progress-bar-bg { background: var(--border); border-radius: 10px; height: 12px; overflow: hidden; position: relative; }
+    .progress-bar-fill { background: var(--complementary); height: 100%; width: 0%; transition: width 0.2s ease-out; }
+    
+    #viewer-container {
+      flex: 1;
+      width: 100%;
+      overflow-y: auto;
+      background: #525659;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+      position: relative;
+    }
+    
+    #viewer-inner {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .pdf-page {
+      margin-bottom: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      max-width: 95%;
+      background: white;
+    }
+    
+    #loadingToast {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8); color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold;
+    }
+    
+    .non-pdf-msg {
+        background: var(--surface);
+        padding: 40px;
+        border-radius: 12px;
+        text-align: center;
+        margin-top: 10vh;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+
+  <div class="viewer-header">
+    <button class="back-btn" onclick="goBack()">&larr; Back to List</button>
+    <div class="progress-wrapper">
+        <div style="display:flex; justify-content: space-between; margin-bottom: 5px;">
+            <span id="doc-title" style="font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">&nbsp;</span>
+            <span id="progress-text" style="font-weight: bold; color: var(--complementary);">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+            <div id="progress-bar" class="progress-bar-fill"></div>
+        </div>
+    </div>
+  </div>
+
+  <div id="viewer-container">
+      <div id="loadingToast">Loading Document...</div>
+      <div id="viewer-inner"></div>
+  </div>
+
+  <script src="viewer.js"></script>
+</body>
+</html>

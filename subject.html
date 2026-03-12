@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subject Documents</title>
+  <link rel="stylesheet" href="style.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="page-wrapper">
+  <div class="app-container">
+    <nav class="side-nav">
+      <div class="brand">
+        <div>🎓 BTVTED System</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Pre-Board Exam</div>
+      </div>
+      
+      <div class="nav-links">
+        <button class="nav-link active" onclick="window.location.href='dashboard.html'">🏠 Dashboard</button>
+        <button class="nav-link" onclick="toggleBox('notiBox')">
+          🔔 Notifications 
+          <span id="notiCount" style="display:none; background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-left: auto;">0</span>
+        </button>
+        <div id="notiBox" style="display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 0.9rem;">
+            <div id="notiList" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <button class="nav-link" onclick="toggleBox('profileBox')">👤 Profile</button>
+        <div id="profileBox" style="display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 0.9rem;">
+            <strong id="profName">Student Name</strong>
+            <div id="profUsername" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px;"></div>
+            <strong>Latest Scores:</strong>
+            <ul id="profScores" style="list-style: none; padding: 0; margin-top: 5px; font-size: 0.85rem;"></ul>
+        </div>
+      </div>
+
+      <div class="nav-footer">
+        <button class="btn-danger" id="logoutBtn" style="width: 100%;">Sign Out</button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="mb-4">
+        <h1 id="subject-title">&nbsp;</h1>
+        <p>Read the documents below to prepare for your pre-board examination. Your progress is saved automatically.</p>
+        
+        <div style="margin-top: 2rem;">
+          <button class="btn-comp" onclick="startExam()">
+            Take Auto-Generated Pre-Board Exam &rarr;
+          </button>
+        </div>
+      </div>
+
+      <div class="subjects-grid" id="docs-container">
+        <!-- Documents injected here via JS -->
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const subject = localStorage.getItem("selectedSubject");
+    const username = localStorage.getItem("username");
+    
+    if (!subject || !username) {
+        window.location.href = "index.html";
+    }
+
+    const titles = {
+        'major': 'Major Subjects',
+        'prof': 'Professional Education',
+        'nonprof': 'General Education'
+    };
+    document.getElementById("subject-title").textContent = (titles[subject] || subject) + " Materials";
+
+    document.getElementById("profName").textContent = localStorage.getItem("studentName") || "Student";
+    document.getElementById("profUsername").textContent = "@" + username;
+
+    function toggleBox(boxId) {
+        const box = document.getElementById(boxId);
+        const boxes = ['notiBox', 'profileBox'];
+        boxes.forEach(id => {
+            if (id !== boxId) document.getElementById(id).style.display = 'none';
+        });
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Fetch Profile Data (Scores & Notifications)
+    async function loadProfile() {
+        try {
+            const res = await fetch(`api/student.php?action=get_profile&username=${username}`);
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                // Notifications
+                const notiList = document.getElementById("notiList");
+                if (data.notifications && data.notifications.length > 0) {
+                    document.getElementById("notiCount").textContent = data.notifications.length;
+                    document.getElementById("notiCount").style.display = "inline";
+                    notiList.innerHTML = data.notifications.map(n => `<div style="padding: 5px 0; border-bottom: 1px solid #f3f4f6;">${n.message} <br><small style="color:#9ca3af;">${new Date(n.created_at).toLocaleDateString()}</small></div>`).join('');
+                } else {
+                    notiList.innerHTML = "<p style='color: #6b7280;'>No new notifications.</p>";
+                }
+
+                // Scores
+                const sList = document.getElementById("profScores");
+                if (data.scores && data.scores.length > 0) {
+                    sList.innerHTML = data.scores.map(s => `<li>${s.subject_type}: <strong>${s.score}/${s.total}</strong></li>`).join('');
+                } else {
+                    sList.innerHTML = "<li style='color: #6b7280;'>No exams taken yet.</li>";
+                }
+            }
+        } catch(e) { console.error(e); }
+    }
+    loadProfile();
+
+    document.getElementById("logoutBtn").addEventListener("click", function(e) {
+      e.preventDefault();
+      localStorage.removeItem("studentName");
+      localStorage.removeItem("selectedSubject");
+      window.location.href = "index.html";
+    });
+
+    // Fetch documents
+    function loadDocuments() {
+        const container = document.getElementById("docs-container");
+        const cache = JSON.parse(localStorage.getItem('localProgress') || '{}');
+        
+        fetch(`api/student.php?action=get_documents&subject=${subject}&username=${username}&t=${Date.now()}`)
+          .then(r => r.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  container.innerHTML = ""; // Clear
+                  
+                  if (data.documents.length === 0) {
+                      container.innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>No documents are available for this subject yet.</p>";
+                      return;
+                  }
+
+                  data.documents.forEach(doc => {
+                      const card = document.createElement("div");
+                      card.className = "subject-card";
+                      card.style.setProperty('--card-color', 'var(--primary)');
+                      card.onclick = () => viewDocument(doc.id, doc.file_path, doc.type, doc.title);
+                      
+                      const icon = doc.type === 'pdf' ? '📄' : (doc.type === 'docx' ? '📝' : '📊');
+                      
+                      // Use local cache first for "Real-time" feel, fallback to server data
+                      const progressPct = Math.max(Math.round(doc.progress), cache[doc.id] || 0);
+                      
+                      card.innerHTML = `
+                          <div class="icon" style="font-size: 2rem;">${icon}</div>
+                          <h3 style="font-size: 1.1rem; margin: 0 0 10px 0; color: var(--text-dark);">${doc.title}</h3>
+                          <div style="margin-bottom: 15px; display:inline-block; font-size: 0.8rem; background: var(--secondary); padding: 4px 8px; border-radius: 4px;">Format: ${doc.type.toUpperCase()}</div>
+                          
+                          <div style="background: var(--border); border-radius: 10px; height: 8px; width: 100%; overflow: hidden; margin-top: auto;">
+                              <div style="background: var(--complementary); height: 100%; width: ${progressPct}%;"></div>
+                          </div>
+                          <div style="text-align: right; font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; font-weight: bold;">
+                              ${progressPct}% Read
+                          </div>
+                      `;
+                      container.appendChild(card);
+                  });
+              }
+          })
+          .catch(err => console.error(err));
+    }
+
+    // Refresh on load and when returning to tab/page
+    window.addEventListener('pageshow', loadDocuments);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') loadDocuments();
+    });
+    loadDocuments();
+
+    function viewDocument(id, path, type, title) {
+        localStorage.setItem("viewDocId", id);
+        localStorage.setItem("viewDocPath", path);
+        localStorage.setItem("viewDocType", type);
+        localStorage.setItem("viewDocTitle", title);
+        window.location.href = "viewer.html";
+    }
+
+    function startExam() {
+        window.location.href = "exam.html";
+    }
+  </script>
+</body>
+</html>

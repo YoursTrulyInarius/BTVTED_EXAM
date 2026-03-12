@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - BTVTED System</title>
+    <link rel="stylesheet" href="style.css?v=3">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="page-wrapper">
+    <div class="app-container">
+        <nav class="side-nav">
+            <div class="brand">
+                <div>👨‍🏫 BTVTED System</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Teacher Dashboard</div>
+            </div>
+
+            <div class="mb-4" style="padding: 0 12px;">
+                <span style="font-size: 0.9rem; color: var(--text-muted);">Welcome,</span><br>
+                <strong id="teacherNameDisplay" style="color: var(--text-dark);">Teacher</strong>
+            </div>
+
+            <div class="nav-links">
+                <button class="nav-link active tab-btn" onclick="switchTab('upload')">📁 Reviewer Management</button>
+                <button class="nav-link tab-btn" onclick="switchTab('exams')">📋 Exam Management</button>
+                <button class="nav-link tab-btn" onclick="switchTab('students')">🏆 Student Rankings</button>
+            </div>
+
+            <div class="nav-footer">
+                <button class="btn-danger" id="logoutBtn" style="width: 100%;">Sign Out</button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+
+            <!-- Upload Tab -->
+            <div id="tab-upload" class="tab-content active">
+                <div style="display: flex; gap: 20px;">
+                    <!-- Left: Upload Form -->
+                    <div class="card" style="flex: 1;">
+                        <h2 style="margin-top: 0; margin-bottom: 20px;">Upload Reviewer / Material</h2>
+                        <form id="uploadForm">
+                            <div class="form-group">
+                                <label>Subject Category</label>
+                                <select id="docSubject" onchange="loadSpecificSubjects('doc')" required>
+                                    <option value="">-- Select Category --</option>
+                                    <option value="1">General Education</option>
+                                    <option value="2">Major</option>
+                                    <option value="3">Professional Education</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Specific Subject</label>
+                                <input type="text" id="docSpecificSubject" list="docSubjectOptions" class="form-control select-input" placeholder="Select or type a new subject..." required>
+                                <datalist id="docSubjectOptions"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label>Document Title</label>
+                                <input type="text" id="docTitle" name="title" class="form-control"
+                                    placeholder="e.g. History Final Notes" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label>Details / Description</label>
+                                <textarea id="docDesc" name="description" class="form-control"
+                                    placeholder="Describe the contents of this file..." rows="3"
+                                    style="width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px;"
+                                    required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>File (PDF, DOCX, PPT)</label>
+                                <input type="file" id="docFile" name="file" accept=".pdf,.docx,.ppt,.pptx" required>
+                            </div>
+                            <button type="submit" class="btn-primary" style="width: 100%;" id="uploadBtn">Upload
+                                Document</button>
+                            <div id="uploadMsg"
+                                style="margin-top: 15px; text-align: center; font-weight: bold; display: none;"></div>
+                        </form>
+                    </div>
+
+                    <!-- Right: Existing Documents -->
+                    <div class="card" style="flex: 1; background: var(--secondary);">
+                        <h2 style="margin-top: 0; margin-bottom: 20px;">Manage Documents</h2>
+                    <div style="max-height: 400px; overflow-y: auto;" id="teacherDocsList">
+                        <!-- Content loaded via JS -->
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exams Tab -->
+            <div id="tab-exams" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-top: 0; margin-bottom: 20px;">Exam Management</h2>
+                    <div style="max-height: 400px; overflow-y: auto;" id="teacherExamsList">
+                        <!-- Content loaded via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div id="tab-students" class="tab-content">
+                <h2 style="margin-bottom: 10px;">Student Exam Rankings</h2>
+                <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end;">
+                    <div>
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Filter by Category:</label>
+                        <select id="rankSubject" onchange="loadSpecificSubjects('rank')"
+                            style="padding: 8px; border-radius: 6px; border: 1px solid #d1d5db; min-width: 180px;">
+                            <option value="">-- Select Category --</option>
+                            <option value="1">General Education</option>
+                            <option value="2">Major</option>
+                            <option value="3">Professional Education</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Specific Subject:</label>
+                        <input type="text" id="rankSpecificSubject" list="rankSubjectOptions" 
+                            class="form-control select-input" placeholder="All Subjects in Category"
+                            style="padding: 8px; border-radius: 6px; border: 1px solid #d1d5db; min-width: 220px;">
+                        <datalist id="rankSubjectOptions"></datalist>
+                    </div>
+                </div>
+                <table id="rankingsTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Student Name</th>
+                            <th>Subject</th>
+                            <th>Score</th>
+                            <th>Date Taken</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Content loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- View Exam Modal -->
+    <div class="modal-overlay" id="examModal">
+        <div class="result-modal"
+            style="max-width: 600px; max-height: 80vh; overflow-y: auto; text-align: left; padding: 30px;">
+            <h2 id="examModalTitle" style="margin-bottom: 20px; font-size: 1.5rem; color: var(--primary);">Exam
+                Questions</h2>
+            <div id="examModalContent">
+                Loading...
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn-secondary"
+                    onclick="document.getElementById('examModal').classList.remove('active')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="teacher.js?v=3"></script>
+</body>
+
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTVTED Pre-Board Exam System</title>
+  <meta name="description" content="BTVTED Pre-Board Examination System - Practice for Major, Professional, and Non-Professional subjects.">
+  <link rel="stylesheet" href="style.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="page-wrapper">
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-logo">
+        <div style="font-size: 48px; margin-bottom: 16px;">🎓</div>
+        <h1>BTVTED Exam System</h1>
+        <p>Bachelor of Technical-Vocational Teacher Education</p>
+      </div>
+
+      <form id="loginForm" autocomplete="off">
+        <div class="form-group">
+          <label for="username">Student ID / Username</label>
+          <input type="text" class="form-control" id="username" placeholder="Enter your username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn-primary" id="loginBtn">
+          Sign In &rarr;
+        </button>
+      </form>
+
+      <div class="error-alert" id="error-message">
+        ⚠️ Invalid username or password. Please try again.
+      </div>
+
+      <p class="hint-text">Student: <span>student</span> / <span>password123</span></p>
+      <p class="hint-text">Teacher: <span>teacher</span> / <span>password123</span></p>
+    </div>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>

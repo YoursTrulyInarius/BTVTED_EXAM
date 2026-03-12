@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTVTED – Choose Your Subject</title>
+  <link rel="stylesheet" href="style.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="page-wrapper">
+  <div class="app-container">
+    <nav class="side-nav">
+      <div class="brand">
+        <div>🎓 BTVTED System</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Pre-Board Exam</div>
+      </div>
+      
+      <div class="nav-links">
+        <button class="nav-link active" onclick="window.location.href='dashboard.html'">🏠 Dashboard</button>
+        <button class="nav-link" onclick="toggleBox('notiBox')">
+          🔔 Notifications 
+          <span id="notiCount" style="display:none; background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-left: auto;">0</span>
+        </button>
+        <div id="notiBox" style="display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 0.9rem;">
+            <div id="notiList" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <button class="nav-link" onclick="toggleBox('profileBox')">👤 Profile</button>
+        <div id="profileBox" style="display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 0.9rem;">
+            <strong id="profName">Student Name</strong>
+            <div id="profUsername" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px;"></div>
+            <strong>Latest Scores:</strong>
+            <ul id="profScores" style="list-style: none; padding: 0; margin-top: 5px; font-size: 0.85rem;"></ul>
+        </div>
+      </div>
+
+      <div class="nav-footer">
+        <button class="btn-danger" id="logoutBtn" style="width: 100%;">Sign Out</button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="mb-4">
+        <h1>Select a Subject to Begin</h1>
+        <p>Choose one of the three subject areas below to start your practice exam.</p>
+      </div>
+
+      <div class="subjects-grid">
+        <div class="subject-card" onclick="viewSubject('major')">
+          <div class="icon">⚙️</div>
+          <h3>Major Subjects</h3>
+          <p>Technical and vocational trade-specific knowledge and applied skills.</p>
+          <div style="margin-top: 20px;">
+            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
+          </div>
+        </div>
+
+        <div class="subject-card" onclick="viewSubject('nonprof')">
+          <div class="icon">📚</div>
+          <h3>Non-Prof Subjects</h3>
+          <p>General education and non-professional competencies for board exam.</p>
+          <div style="margin-top: 20px;">
+            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
+          </div>
+        </div>
+
+        <div class="subject-card" onclick="viewSubject('prof')">
+          <div class="icon">🏫</div>
+          <h3>Prof Subjects</h3>
+          <p>Professional education theories, pedagogy, and teaching methodologies.</p>
+          <div style="margin-top: 20px;">
+            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Guard: redirect to login if not authenticated
+    const username = localStorage.getItem("username");
+    if (!username) {
+      window.location.href = "index.html";
+    }
+
+    document.getElementById("profName").textContent = localStorage.getItem("studentName") || "Student";
+    document.getElementById("profUsername").textContent = "@" + username;
+
+    function toggleBox(boxId) {
+        document.getElementById('notiBox').style.display = 'none';
+        document.getElementById('profileBox').style.display = 'none';
+        if (boxId) document.getElementById(boxId).style.display = 'block';
+    }
+
+    // Close boxes logic removed due to inline side-nav integration
+    function toggleBox(boxId) {
+        const box = document.getElementById(boxId);
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Fetch Profile Data (Scores & Notifications)
+    async function loadProfile() {
+        try {
+            const res = await fetch(`api/student.php?action=get_profile&username=${username}`);
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                // Notifications
+                const notiList = document.getElementById("notiList");
+                if (data.notifications && data.notifications.length > 0) {
+                    document.getElementById("notiCount").textContent = data.notifications.length;
+                    document.getElementById("notiCount").style.display = "inline";
+                    notiList.innerHTML = data.notifications.map(n => `<div style="padding: 5px 0; border-bottom: 1px solid #f3f4f6;">${n.message} <br><small style="color:#9ca3af;">${new Date(n.created_at).toLocaleDateString()}</small></div>`).join('');
+                } else {
+                    notiList.innerHTML = "<p style='color: #6b7280;'>No new notifications.</p>";
+                }
+
+                // Scores
+                const sList = document.getElementById("profScores");
+                if (data.scores && data.scores.length > 0) {
+                    sList.innerHTML = data.scores.map(s => `<li>${s.subject_type}: <strong>${s.score}/${s.total}</strong></li>`).join('');
+                } else {
+                    sList.innerHTML = "<li style='color: #6b7280;'>No exams taken yet.</li>";
+                }
+            }
+        } catch(e) { console.error(e); }
+    }
+    loadProfile();
+
+    document.getElementById("logoutBtn").addEventListener("click", function(e) {
+      e.preventDefault();
+      localStorage.clear();
+      window.location.href = "index.html";
+    });
+
+    function viewSubject(subject) {
+      localStorage.setItem("selectedSubject", subject);
+      window.location.href = "subject.html";
+    }
+  </script>
+</body>
+</html>
