@@ -390,4 +390,56 @@ if ($action === 'get_rankings') {
     exit;
 }
 
+if ($action === 'create_scheduled_exam') {
+    $subject_id = $_POST['subject_id'] ?? 0;
+    
+    // Check for NEW subject
+    $new_subject_name = $_POST['new_subject_name'] ?? '';
+    if ($subject_id == 0 && !empty($new_subject_name)) {
+        $category_id = $_POST['category_id'] ?? 1;
+        $typeMap = [1 => 'General-Education', 2 => 'Major', 3 => 'Professional-Education'];
+        $catType = $typeMap[$category_id] ?? 'General-Education';
+        
+        $stmt = $pdo->prepare("INSERT INTO subjects (name, type) VALUES (?, ?)");
+        $stmt->execute([$new_subject_name, $catType]);
+        $subject_id = $pdo->lastInsertId();
+    }
+    
+    $title = $_POST['title'] ?? 'Custom Scheduled Exam';
+    $schedule = $_POST['examSchedule'] ?? null; // datetime-local format is YYYY-MM-DDTHH:MM
+    if (!$schedule) $schedule = null;
+
+    if ($subject_id > 0) {
+        $stmt = $pdo->prepare("INSERT INTO exams (title, subject_id, created_by, time_limit_minutes, scheduled_date) VALUES (?, ?, ?, 60, ?)");
+        $stmt->execute([$title, $subject_id, $teacher_id, $schedule]);
+        
+        // Notify all students if scheduled
+        if ($schedule) {
+            // Find subject name for notification
+            $stmtSub = $pdo->prepare("SELECT name FROM subjects WHERE id = ?");
+            $stmtSub->execute([$subject_id]);
+            $sub = $stmtSub->fetch();
+            $subName = $sub['name'] ?? 'Subject';
+
+            $formattedDate = date("F j, Y, g:i a", strtotime($schedule));
+            $message = "A new scheduled exam '{$title}' for {$subName} has been set for {$formattedDate}.";
+            
+            // Get all students
+            $stmtUsers = $pdo->prepare("SELECT id FROM users WHERE role = 'student'");
+            $stmtUsers->execute();
+            $students = $stmtUsers->fetchAll();
+            
+            $stmtNotif = $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)");
+            foreach ($students as $student) {
+                $stmtNotif->execute([$student['id'], $message]);
+            }
+        }
+
+        echo json_encode(['status' => 'success']);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid subject.']);
+    }
+    exit;
+}
+
 echo json_encode(['status' => 'error', 'message' => 'Invalid action']);

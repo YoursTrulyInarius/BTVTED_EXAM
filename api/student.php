@@ -8,32 +8,48 @@ require_once 'db.php';
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 if ($action === 'get_exam') {
+    $exam_id = $_GET['exam_id'] ?? 0;
     $subject = $_GET['subject'] ?? '';
-    if (!$subject) {
-        echo json_encode(['status' => 'error', 'message' => 'Missing subject']);
+    
+    if (!$subject && !$exam_id) {
+        echo json_encode(['status' => 'error', 'message' => 'Missing subject or exam_id']);
         exit;
     }
 
-    $typeMap = [
-        'major' => 'Major',
-        'prof' => 'Professional-Education',
-        'nonprof' => 'General-Education'
-    ];
+    $exam = null;
+    $subjectType = '';
 
-    $subjectType = $typeMap[$subject] ?? '';
+    if ($exam_id) {
+        $stmt = $pdo->prepare("SELECT id, title, time_limit_minutes FROM exams WHERE id = ? LIMIT 1");
+        $stmt->execute([$exam_id]);
+        $exam = $stmt->fetch();
+        if (!$exam) {
+            echo json_encode(['status' => 'error', 'message' => 'Exam not found']);
+            exit;
+        }
+        $subjectType = 'Specific Exam';
+    } else {
+        $typeMap = [
+            'major' => 'Major',
+            'prof' => 'Professional-Education',
+            'nonprof' => 'General-Education'
+        ];
 
-    $stmt = $pdo->prepare("SELECT id, name FROM subjects WHERE type = ? LIMIT 1");
-    $stmt->execute([$subjectType]);
-    $sub = $stmt->fetch();
+        $subjectType = $typeMap[$subject] ?? '';
 
-    if (!$sub) {
-        echo json_encode(['status' => 'error', 'message' => 'Subject not found in DB']);
-        exit;
+        $stmt = $pdo->prepare("SELECT id, name FROM subjects WHERE type = ? LIMIT 1");
+        $stmt->execute([$subjectType]);
+        $sub = $stmt->fetch();
+
+        if (!$sub) {
+            echo json_encode(['status' => 'error', 'message' => 'Subject not found in DB']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT id, title, time_limit_minutes FROM exams e JOIN subjects s ON e.subject_id = s.id WHERE s.type = ? LIMIT 1");
+        $stmt->execute([$subjectType]);
+        $exam = $stmt->fetch();
     }
-
-    $stmt = $pdo->prepare("SELECT id, title FROM exams e JOIN subjects s ON e.subject_id = s.id WHERE s.type = ? LIMIT 1");
-    $stmt->execute([$subjectType]);
-    $exam = $stmt->fetch();
 
     $questions = [];
     if ($exam) {
@@ -108,7 +124,7 @@ if ($action === 'get_documents') {
     $subjectType = $typeMap[$subject] ?? '';
     
     $stmt = $pdo->prepare("
-        SELECT d.id, d.title, d.type, d.file_path, IFNULL(p.progress_percentage, 0) as progress
+        SELECT d.id, d.title, d.type, d.file_path, IFNULL(p.progress_percentage, 0) as progress, sub.name as specific_subject_name
         FROM documents d
         JOIN subjects sub ON d.subject_id = sub.id
         LEFT JOIN student_reading_progress p ON d.id = p.document_id AND p.student_id = ?
@@ -117,6 +133,24 @@ if ($action === 'get_documents') {
     $stmt->execute([$student_id, $subjectType]);
     $docs = $stmt->fetchAll();
     echo json_encode(['status' => 'success', 'documents' => $docs]);
+    exit;
+}
+
+if ($action === 'get_exams_list') {
+    $subject = $_GET['subject'] ?? '';
+    $typeMap = ['major' => 'Major', 'prof' => 'Professional-Education', 'nonprof' => 'General-Education'];
+    $subjectType = $typeMap[$subject] ?? '';
+    
+    $stmt = $pdo->prepare("
+        SELECT e.id, e.title, e.time_limit_minutes, e.scheduled_date, sub.name as subject_name
+        FROM exams e
+        JOIN subjects sub ON e.subject_id = sub.id
+        WHERE sub.type = ?
+        ORDER BY IFNULL(e.scheduled_date, '9999-12-31') ASC, e.id DESC
+    ");
+    $stmt->execute([$subjectType]);
+    $exams = $stmt->fetchAll();
+    echo json_encode(['status' => 'success', 'exams' => $exams]);
     exit;
 }
 

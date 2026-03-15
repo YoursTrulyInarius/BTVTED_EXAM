@@ -91,10 +91,45 @@
 
             <!-- Exams Tab -->
             <div id="tab-exams" class="tab-content">
-                <div class="card">
-                    <h2 style="margin-top: 0; margin-bottom: 20px;">Exam Management</h2>
-                    <div style="max-height: 400px; overflow-y: auto;" id="teacherExamsList">
-                        <!-- Content loaded via JS -->
+                <div style="display: flex; gap: 20px;">
+                    <!-- Left: Create Explicit/Scheduled Exam Form -->
+                    <div class="card" style="flex: 1;">
+                        <h2 style="margin-top: 0; margin-bottom: 20px;">Create Scheduled Exam</h2>
+                        <form id="createExamForm">
+                            <div class="form-group">
+                                <label>Subject Category</label>
+                                <select id="examSubjectCat" onchange="loadSpecificSubjects('exam')" required>
+                                    <option value="">-- Select Category --</option>
+                                    <option value="1">General Education</option>
+                                    <option value="2">Major</option>
+                                    <option value="3">Professional Education</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Specific Subject</label>
+                                <input type="text" id="examSpecificSubject" list="examSubjectOptions" class="form-control select-input" placeholder="Select or type a new subject..." required>
+                                <datalist id="examSubjectOptions"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label>Exam Title</label>
+                                <input type="text" id="examTitle" name="title" class="form-control"
+                                    placeholder="e.g. History Midterms" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Scheduled Date & Time (Optional)</label>
+                                <input type="datetime-local" id="examSchedule" class="form-control" style="width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px;">
+                                <small style="color: var(--text-muted); display: block; margin-top: 5px;">If set, students will be notified to take the exam at this time.</small>
+                            </div>
+                            <button type="submit" class="btn-primary" style="width: 100%;" id="createExamBtn">Create Exam</button>
+                        </form>
+                    </div>
+
+                    <!-- Right: Exam Management -->
+                    <div class="card" style="flex: 1; background: var(--secondary);">
+                        <h2 style="margin-top: 0; margin-bottom: 20px;">Exam Management</h2>
+                        <div style="max-height: 400px; overflow-y: auto;" id="teacherExamsList">
+                            <!-- Content loaded via JS -->
+                        </div>
                     </div>
                 </div>
             </div>

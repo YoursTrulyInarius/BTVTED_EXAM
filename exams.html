@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BTVTED – Choose Your Subject</title>
+  <title>Available Exams</title>
   <link rel="stylesheet" href="style.css?v=3">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -16,7 +16,7 @@
       </div>
       
       <div class="nav-links">
-        <button class="nav-link active" onclick="window.location.href='dashboard.html'">🏠 Dashboard</button>
+        <button class="nav-link" onclick="window.location.href='dashboard.html'">🏠 Dashboard</button>
         <button class="nav-link" onclick="toggleBox('notiBox')">
           🔔 Notifications 
           <span id="notiCount" style="display:none; background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-left: auto;">0</span>
@@ -25,7 +25,7 @@
             <div id="notiList" style="max-height: 150px; overflow-y: auto;"></div>
         </div>
 
-        <button class="nav-link" onclick="window.location.href='exams.html'">📋 Exams & Quizzes</button>
+        <button class="nav-link active" onclick="window.location.href='exams.html'">📋 Exams & Quizzes</button>
 
         <button class="nav-link" onclick="toggleBox('profileBox')">👤 Profile</button>
         <div id="profileBox" style="display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 0.9rem;">
@@ -43,60 +43,40 @@
 
     <main class="main-content">
       <div class="mb-4">
-        <h1>Select a Subject to Begin</h1>
-        <p>Choose one of the three subject areas below to start your practice exam.</p>
+        <h1 id="subject-title">&nbsp;</h1>
+        <p>Available exams and quizzes for your chosen subject area. Note any scheduled dates!</p>
       </div>
 
-      <div class="subjects-grid">
-        <div class="subject-card" onclick="viewSubject('major')">
-          <div class="icon">⚙️</div>
-          <h3>Major Subjects</h3>
-          <p>Technical and vocational trade-specific knowledge and applied skills.</p>
-          <div style="margin-top: 20px;">
-            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
-          </div>
-        </div>
-
-        <div class="subject-card" onclick="viewSubject('nonprof')">
-          <div class="icon">📚</div>
-          <h3>Non-Prof Subjects</h3>
-          <p>General education and non-professional competencies for board exam.</p>
-          <div style="margin-top: 20px;">
-            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
-          </div>
-        </div>
-
-        <div class="subject-card" onclick="viewSubject('prof')">
-          <div class="icon">🏫</div>
-          <h3>Prof Subjects</h3>
-          <p>Professional education theories, pedagogy, and teaching methodologies.</p>
-          <div style="margin-top: 20px;">
-            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
-          </div>
-        </div>
+      <div class="subjects-grid" id="docs-container">
+        <!-- Documents injected here via JS -->
       </div>
     </main>
   </div>
 
   <script>
-    // Guard: redirect to login if not authenticated
+    const subject = localStorage.getItem("selectedSubject");
     const username = localStorage.getItem("username");
-    if (!username) {
-      window.location.href = "index.html";
+    
+    if (!subject || !username) {
+        window.location.href = "index.html";
     }
+
+    const titles = {
+        'major': 'Major Subjects',
+        'prof': 'Professional Education',
+        'nonprof': 'General Education'
+    };
+    document.getElementById("subject-title").textContent = (titles[subject] || subject) + " Exams";
 
     document.getElementById("profName").textContent = localStorage.getItem("studentName") || "Student";
     document.getElementById("profUsername").textContent = "@" + username;
 
     function toggleBox(boxId) {
-        document.getElementById('notiBox').style.display = 'none';
-        document.getElementById('profileBox').style.display = 'none';
-        if (boxId) document.getElementById(boxId).style.display = 'block';
-    }
-
-    // Close boxes logic removed due to inline side-nav integration
-    function toggleBox(boxId) {
         const box = document.getElementById(boxId);
+        const boxes = ['notiBox', 'profileBox'];
+        boxes.forEach(id => {
+            if (id !== boxId) document.getElementById(id).style.display = 'none';
+        });
         box.style.display = box.style.display === 'none' ? 'block' : 'none';
     }
 
@@ -131,14 +111,65 @@
 
     document.getElementById("logoutBtn").addEventListener("click", function(e) {
       e.preventDefault();
-      localStorage.clear();
+      localStorage.removeItem("studentName");
+      localStorage.removeItem("selectedSubject");
       window.location.href = "index.html";
     });
 
-    function viewSubject(subject) {
-      localStorage.setItem("selectedSubject", subject);
-      window.location.href = "subject.html";
+    // Fetch custom exams
+    function loadExams() {
+        const container = document.getElementById("docs-container");
+        
+        fetch(`api/student.php?action=get_exams_list&subject=${subject}&username=${username}&t=${Date.now()}`)
+          .then(r => r.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  container.innerHTML = "";
+                  
+                  if (data.exams.length === 0) {
+                      container.innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>No exams are available for this subject yet.</p>";
+                      return;
+                  }
+
+                  data.exams.forEach(ex => {
+                      const card = document.createElement("div");
+                      card.className = "subject-card";
+                      card.style.setProperty('--card-color', 'var(--primary)');
+                      card.onclick = () => {
+                          localStorage.setItem("selectedExamId", ex.id);
+                          window.location.href = "exam.html";
+                      };
+                      
+                      const icon = '📝';
+                      let scheduleHtml = '';
+                      if (ex.scheduled_date) {
+                          scheduleHtml = `<div style="margin-bottom: 10px; display:inline-block; font-size: 0.8rem; background: var(--secondary); padding: 4px 8px; border-radius: 4px; color: var(--primary); font-weight: bold;">📅 Scheduled: ${new Date(ex.scheduled_date).toLocaleString()}</div>`;
+                      }
+                      
+                      card.innerHTML = `
+                          <div class="icon" style="font-size: 2rem;">${icon}</div>
+                          <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: bold; margin-bottom: 5px;">${ex.subject_name}</div>
+                          <h3 style="font-size: 1.1rem; margin: 0 0 10px 0; color: var(--text-dark);">${ex.title}</h3>
+                          ${scheduleHtml}
+                          <div style="font-size: 0.8rem; margin-top: 10px; color: var(--text-dark);">Duration: ${ex.time_limit_minutes} mins</div>
+                          
+                          <div style="text-align: right; margin-top: auto; padding-top: 15px;">
+                              <button style="background: var(--primary); color: white; border: none; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;">Take Exam</button>
+                          </div>
+                      `;
+                      container.appendChild(card);
+                  });
+              }
+          })
+          .catch(err => console.error(err));
     }
+
+    // Refresh on load and when returning to tab/page
+    window.addEventListener('pageshow', loadExams);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') loadExams();
+    });
+    loadExams();
   </script>
 </body>
 </html>

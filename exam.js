@@ -16,10 +16,12 @@ let currentExam = {
  */
 async function initExam() {
     const sub = localStorage.getItem("selectedSubject");
-    if (!sub) {
+    const examId = localStorage.getItem("selectedExamId"); // New
+    
+    if (!sub && !examId) {
         Swal.fire({
             title: "Access Error",
-            text: "Subject not selected. Returning to dashboard.",
+            text: "No exam or subject selected. Returning to dashboard.",
             icon: "error"
         }).then(() => {
             window.location.href = "dashboard.html";
@@ -28,22 +30,22 @@ async function initExam() {
     }
 
     currentExam.subjectKey = sub;
-    
-    // Set Time Left based on subject type
-    if (sub === 'major') {
-        currentExam.timeLeft = 7200; // 2 hours
-    } else {
-        currentExam.timeLeft = 5400; // 1.5 hours
-    }
 
     try {
-        // Fetch questions from backend API
-        const response = await fetch(`api/student.php?action=get_exam&subject=${sub}`);
+        // Fetch specific exam if ID is known, else fallback to random subject exam
+        const url = examId 
+            ? `api/student.php?action=get_exam&exam_id=${examId}`
+            : `api/student.php?action=get_exam&subject=${sub}`;
+            
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.status === 'success' && data.exam) {
             currentExam.id = data.exam.id;
             currentExam.questions = data.exam.questions;
+            
+            // Set Time Left based on exam specific limits
+            currentExam.timeLeft = (data.exam.time_limit_minutes || 60) * 60;
             
             // UI Setup
             document.getElementById("current-subject-title").textContent = data.exam.title;
@@ -58,13 +60,13 @@ async function initExam() {
             window.onbeforeunload = () => "Are you sure you want to leave? Your progress will be lost.";
         } else {
             Swal.fire("Load Error", "Failed to load exam data: " + (data.message || "Unknown error"), "error").then(() => {
-                window.location.href = "dashboard.html";
+                window.location.href = "exams.html";
             });
         }
     } catch (e) {
         console.error(e);
         Swal.fire("Error", "Error fetching exam. Returning to dashboard.", "error").then(() => {
-            window.location.href = "dashboard.html";
+            window.location.href = "exams.html";
         });
     }
 }

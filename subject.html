@@ -25,6 +25,8 @@
             <div id="notiList" style="max-height: 150px; overflow-y: auto;"></div>
         </div>
 
+        <button class="nav-link" onclick="window.location.href='exams.html'">📋 Exams & Quizzes</button>
+
         <button class="nav-link" onclick="toggleBox('profileBox')">👤 Profile</button>
         <div id="profileBox" style="display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 0.9rem;">
             <strong id="profName">Student Name</strong>
@@ -43,12 +45,6 @@
       <div class="mb-4">
         <h1 id="subject-title">&nbsp;</h1>
         <p>Read the documents below to prepare for your pre-board examination. Your progress is saved automatically.</p>
-        
-        <div style="margin-top: 2rem;">
-          <button class="btn-comp" onclick="startExam()">
-            Take Auto-Generated Pre-Board Exam &rarr;
-          </button>
-        </div>
       </div>
 
       <div class="subjects-grid" id="docs-container">
@@ -149,6 +145,7 @@
                       
                       card.innerHTML = `
                           <div class="icon" style="font-size: 2rem;">${icon}</div>
+                          <div style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 5px;">${doc.specific_subject_name}</div>
                           <h3 style="font-size: 1.1rem; margin: 0 0 10px 0; color: var(--text-dark);">${doc.title}</h3>
                           <div style="margin-bottom: 15px; display:inline-block; font-size: 0.8rem; background: var(--secondary); padding: 4px 8px; border-radius: 4px;">Format: ${doc.type.toUpperCase()}</div>
                           
@@ -179,10 +176,6 @@
         localStorage.setItem("viewDocType", type);
         localStorage.setItem("viewDocTitle", title);
         window.location.href = "viewer.html";
-    }
-
-    function startExam() {
-        window.location.href = "exam.html";
     }
   </script>
 </body>

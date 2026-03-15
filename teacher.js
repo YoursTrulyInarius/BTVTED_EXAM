@@ -90,6 +90,53 @@ document.getElementById("uploadForm").addEventListener("submit", async function 
 
 // Fetch Rankings
 async function fetchRankings() {
+
+// Create Scheduled Exam
+document.getElementById("createExamForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById("createExamBtn");
+    const formData = new FormData(this);
+    formData.append('action', 'create_scheduled_exam');
+    formData.append('username', username);
+
+    // Resolve subject ID
+    const examInput = document.getElementById("examSpecificSubject");
+    const categoryId = document.getElementById("examSubjectCat").value;
+    const options = document.querySelectorAll("#examSubjectOptions option");
+    let subjectId = 0;
+    
+    options.forEach(opt => {
+        if (opt.value === examInput.value) subjectId = opt.dataset.id;
+    });
+
+    if (subjectId > 0) {
+        formData.append('subject_id', subjectId);
+    } else {
+        formData.append('new_subject_name', examInput.value);
+        formData.append('category_id', categoryId);
+    }
+
+    btn.textContent = "Creating...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('api/teacher.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+            Swal.fire("Success", "Exam created successfully! Students will be notified.", "success");
+            this.reset();
+            fetchExams();
+        } else {
+            Swal.fire("Error", data.message || "Failed to create exam", "error");
+        }
+    } catch (e) {
+        Swal.fire("Error", "Server error. Try again.", "error");
+    } finally {
+        btn.textContent = "Create Exam";
+        btn.disabled = false;
+    }
+});
     const tbody = document.querySelector("#rankingsTable tbody");
     const categoryId = document.getElementById("rankSubject").value;
     const rankInput = document.getElementById("rankSpecificSubject");
@@ -304,6 +351,7 @@ async function fetchExams() {
                     <div style="flex: 1; margin-right: 15px;">
                         <strong style="display: block; color: var(--text-dark);">${ex.title}</strong>
                         <span style="font-size: 0.85rem; color: var(--text-muted);">Subject: ${ex.subject_name} | Duration: ${ex.time_limit_minutes} mins</span>
+                        ${ex.scheduled_date ? `<div style="font-size: 0.8rem; color: var(--primary); margin-top: 5px;">📅 Scheduled: ${new Date(ex.scheduled_date).toLocaleString()}</div>` : ''}
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button onclick="viewExam(${ex.id})" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;">View Exam</button>
@@ -418,8 +466,9 @@ async function loadSpecificSubjects(prefix) {
         console.error("Failed to load subjects", e);
     }
 
-    // Trigger data fetch for rank
+    // Trigger data fetch for rank or doc
     if (prefix === 'rank') fetchRankings();
+    if (prefix === 'doc') fetchTeacherDocs();
 }
 
 // Show all options when clicking/focusing

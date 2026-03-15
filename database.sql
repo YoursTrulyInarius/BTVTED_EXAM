@@ -29,6 +29,7 @@ INSERT IGNORE INTO subjects (name, type) VALUES
 CREATE TABLE IF NOT EXISTS documents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
+    description TEXT,
     type VARCHAR(50) NOT NULL,
     file_path VARCHAR(255) NOT NULL,
     subject_id INT,
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS exams (
     subject_id INT,
     created_by INT,
     time_limit_minutes INT DEFAULT 60,
+    scheduled_date DATETIME DEFAULT NULL,
     FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
