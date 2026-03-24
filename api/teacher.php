@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json');
 require_once 'db.php';
+require_once __DIR__ . '/extract_text.php';
+require_once __DIR__ . '/generate_questions.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -148,61 +150,76 @@ if ($action === 'delete_doc') {
 
 if ($action === 'auto_generate_exam') {
     $document_id = $_POST['document_id'] ?? 0;
-    
-    // 1. Fetch document
-    $stmt = $pdo->prepare("SELECT title, subject_id FROM documents WHERE id = ?");
+
+    // 1. Fetch document record
+    $stmt = $pdo->prepare("SELECT title, subject_id, file_path, type FROM documents WHERE id = ?");
     $stmt->execute([$document_id]);
     $doc = $stmt->fetch();
-    
+
     if (!$doc) {
-        echo json_encode(['status' => 'error', 'message' => 'Document not found']);
+        echo json_encode(['status' => 'error', 'message' => 'Document not found.']);
         exit;
     }
-    
-    // 2. Extract Text
-    $filePath = "../" . $doc['file_path'];
-    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-    $text = "";
-    
-    if (file_exists($filePath)) {
-        if ($ext === 'pptx') {
-            $text = extract_text_from_pptx($filePath);
-        } else if ($ext === 'docx') {
-            $text = extract_text_from_docx($filePath);
-        } else if ($ext === 'pdf') {
-            $text = "PDF native parsing unavailable. Please use DOCX or PPTX for accurate generation. The system requires text-based documents to process sentences."; // Fallback message
-        }
-    }
-    
-    if (strlen(trim($text)) < 50) {
-        $text = "Not enough text could be extracted from this document to generate a high quality exam. Please provide a rich text document. We are using fallback text to demonstrate the functionality.";
+
+    // 2. Extract text using the unified helper
+    $filePath = '../' . $doc['file_path'];
+    if (!file_exists($filePath)) {
+        echo json_encode(['status' => 'error', 'message' => 'File not found on disk: ' . $doc['file_path']]);
+        exit;
     }
 
-    // 3. Create an exam
-    $examTitle = "Auto-Exam: " . $doc['title'];
-    $duration = ($doc['subject_id'] == 2) ? 120 : 90; // Major 120, others 90
-    
+    $text = extract_text_from_file($filePath);
+
+    if (strlen(trim($text)) < 80) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Could not extract enough text from this document (' . strtoupper($doc['type']) . '). '
+                       . 'If it is a scanned/image-based PDF, text extraction is not possible. '
+                       . 'Please upload a text-based DOCX, PPTX, or a text-based PDF.'
+        ]);
+        exit;
+    }
+
+    // 3. Generate questions
+    $targetCount   = (int)($_POST['question_count'] ?? 30);
+    $targetCount   = max(5, min($targetCount, 50)); // clamp 5–50
+    $generated_qa  = generate_questions_from_text($text, $targetCount);
+
+    if (count($generated_qa) === 0) {
+        echo json_encode(['status' => 'error', 'message' => 'No questions could be generated. The document may not contain enough structured sentences.']);
+        exit;
+    }
+
+    // 4. Create the exam record
+    $examTitle = 'Auto-Exam: ' . $doc['title'];
+    $duration  = 60 + (count($generated_qa) * 2); // ~2 min per question
+
     $stmt = $pdo->prepare("INSERT INTO exams (title, subject_id, created_by, time_limit_minutes) VALUES (?, ?, ?, ?)");
     $stmt->execute([$examTitle, $doc['subject_id'], $teacher_id, $duration]);
     $exam_id = $pdo->lastInsertId();
-    
-    // 4. Generate Questions based on extracted text
-    $generated_qa = generate_questions_from_text($text, 30);
-    
-    $qStmt = $pdo->prepare("INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, correct_option) VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+    // 5. Insert questions
+    $qStmt = $pdo->prepare(
+        "INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, correct_option) "
+      . "VALUES (?, ?, ?, ?, ?, ?, ?)"
+    );
     foreach ($generated_qa as $q) {
+        // Safety: ensure opts array has exactly 4 elements
+        $opts = array_pad((array)$q['opts'], 4, 'N/A');
         $qStmt->execute([
             $exam_id,
             $q['q'],
-            $q['opts'][0],
-            $q['opts'][1],
-            $q['opts'][2],
-            $q['opts'][3],
-            $q['correct']
+            $opts[0], $opts[1], $opts[2], $opts[3],
+            $q['correct'],
         ]);
     }
-    
-    echo json_encode(['status' => 'success', 'exam_id' => $exam_id]);
+
+    echo json_encode([
+        'status'              => 'success',
+        'exam_id'             => $exam_id,
+        'questions_generated' => count($generated_qa),
+        'doc_title'           => $doc['title'],
+    ]);
     exit;
 }
 
@@ -225,109 +242,7 @@ if ($action === 'view_exam') {
     exit;
 }
 
-// ================= Helpers =================
-
-function extract_text_from_pptx($filePath) {
-    $text = "";
-    $zip = new ZipArchive;
-    if ($zip->open($filePath) === TRUE) {
-        $slideCount = 1;
-        while (($xmlString = $zip->getFromName('ppt/slides/slide' . $slideCount . '.xml')) !== false) {
-            $xml = new DOMDocument();
-            @$xml->loadXML($xmlString);
-            $texts = $xml->getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main', 't');
-            foreach ($texts as $t) {
-                $text .= $t->nodeValue . " ";
-            }
-            $slideCount++;
-        }
-        $zip->close();
-    }
-    return $text;
-}
-
-function extract_text_from_docx($filePath) {
-    $text = "";
-    $zip = new ZipArchive;
-    if ($zip->open($filePath) === TRUE) {
-        if (($xmlString = $zip->getFromName('word/document.xml')) !== false) {
-            $xml = new DOMDocument();
-            @$xml->loadXML($xmlString);
-            $texts = $xml->getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 't');
-            foreach ($texts as $t) {
-                $text .= $t->nodeValue . " ";
-            }
-        }
-        $zip->close();
-    }
-    return $text;
-}
-
-function generate_questions_from_text($text, $count = 30) {
-    $sentences = preg_split('/(?<=[.!?])\s+/', $text);
-    $valid_sentences = [];
-    foreach ($sentences as $s) {
-        $s = trim($s);
-        $wordCount = str_word_count($s);
-        // Look for descriptive sentences
-        if ($wordCount >= 6 && $wordCount <= 30) {
-            $valid_sentences[] = $s;
-        }
-    }
-    
-    shuffle($valid_sentences);
-    $selected = array_slice($valid_sentences, 0, $count);
-    
-    // Extract distractors (words > 6 chars)
-    preg_match_all('/\b[a-zA-Z]{6,}\b/', $text, $matches);
-    $distractors = array_unique($matches[0]);
-    if (count($distractors) < 10) {
-        $distractors = array_merge($distractors, ['Information', 'System', 'Process', 'Component', 'Module', 'Structure', 'Concept', 'Analysis', 'Development', 'Strategy']);
-    }
-    
-    $questions = [];
-    $map = [0 => 'a', 1 => 'b', 2 => 'c', 3 => 'd'];
-    
-    foreach ($selected as $s) {
-        preg_match_all('/\b[a-zA-Z]{5,}\b/', $s, $words);
-        if (count($words[0]) > 0) {
-            $answer = $words[0][array_rand($words[0])];
-            $question_text = preg_replace('/\b' . preg_quote($answer, '/') . '\b/', '_____', $s, 1);
-            
-            $options = [$answer];
-            $temp_distract = $distractors;
-            shuffle($temp_distract);
-            
-            foreach ($temp_distract as $d) {
-                if (strtolower($d) !== strtolower($answer) && count($options) < 4) {
-                    $options[] = $d;
-                }
-            }
-            
-            while (count($options) < 4) { $options[] = "None of the above"; }
-            
-            shuffle($options);
-            $correct_idx = array_search($answer, $options);
-            
-            $questions[] = [
-                'q' => $question_text,
-                'opts' => $options,
-                'correct' => $map[$correct_idx]
-            ];
-        }
-    }
-    
-    // Fill remaining with generic fallbacks if document was too short
-    while (count($questions) < $count) {
-        $questions[] = [
-            'q' => "Please refer to the document to understand context. What is a key concept discussed?",
-            'opts' => ["Primary Focus", "Secondary Element", "Irrelevant Detail", "Excluded Topic"],
-            'correct' => 'a'
-        ];
-    }
-    
-    return array_slice($questions, 0, $count);
-}
+// Helpers are now in extract_text.php and generate_questions.php
 
 if ($action === 'get_exams') {
     $stmt = $pdo->prepare("

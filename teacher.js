@@ -289,40 +289,49 @@ function deleteDocument(id) {
 
 function autoGenerateExam(docId, docTitle) {
     Swal.fire({
-        title: 'Generate Exam?',
-        text: `Create automatically generated questions for "${docTitle}"?`,
+        title: 'Generate Exam from Document?',
+        html: `<p>The system will read <strong>"${docTitle}"</strong>, extract its text, and automatically generate multiple-choice questions.</p>`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#10b981',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Yes, generate!'
+        confirmButtonText: '✨ Yes, Generate!'
     }).then(async (result) => {
         if (result.isConfirmed) {
             Swal.fire({
-                title: 'Parsing Document...',
-                text: 'Analyzing text and intelligently generating questions. This may take a few seconds.',
+                title: '📄 Reading Document...',
+                html: 'Extracting text and building intelligent questions.<br><small style="color:#6b7280;">This may take 5–15 seconds.</small>',
                 allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                didOpen: () => { Swal.showLoading(); }
             });
 
             const formData = new FormData();
             formData.append('action', 'auto_generate_exam');
             formData.append('document_id', docId);
             formData.append('username', username);
+            formData.append('question_count', 30);
 
             try {
                 const res = await fetch('api/teacher.php', { method: 'POST', body: formData });
                 const data = await res.json();
-                
+
                 if (data.status === 'success') {
-                    Swal.fire('Success!', `Exam successfully created! Check the 'Exam Mgmt' tab.`, 'success');
+                    Swal.fire({
+                        icon: 'success',
+                        title: '✅ Exam Created!',
+                        html: `<b>${data.questions_generated} questions</b> were generated from<br>"${data.doc_title}".<br><br><span style="color:#6b7280;font-size:0.9rem;">Open the <b>Exam Mgmt</b> tab to review and publish.</span>`
+                    }).then(() => {
+                        switchTab('exams');
+                    });
                 } else {
-                    Swal.fire('Error', "Generation failed: " + data.message, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Generation Failed',
+                        html: data.message || 'An unknown error occurred.',
+                    });
                 }
             } catch (e) {
-                Swal.fire('Error', "Server error when generating exam. Check the raw response.", 'error');
+                Swal.fire('Error', 'Server error. Check if XAMPP is running and try again.', 'error');
             }
         }
     });

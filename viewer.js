@@ -31,6 +31,8 @@ async function goBack() {
     
     if (userRole === "teacher") {
         window.location.href = "dashboard_teacher.html";
+    } else if (docId === "direct") {
+        window.location.href = "dashboard.html";
     } else {
         window.location.href = "subject.html";
     }

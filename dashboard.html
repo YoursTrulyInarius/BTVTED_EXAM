@@ -3,142 +3,532 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BTVTED – Choose Your Subject</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <title>BTVTED – Student Dashboard</title>
+  <link rel="stylesheet" href="style.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    /* ── Hero Banner ── */
+    .dash-hero {
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
+      border-radius: 16px;
+      padding: 32px 36px;
+      color: white;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 8px 24px rgba(37,99,235,0.25);
+      position: relative;
+      overflow: hidden;
+    }
+    .dash-hero::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 220px; height: 220px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 50%;
+    }
+    .dash-hero::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; right: 80px;
+      width: 160px; height: 160px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    .hero-text h1 { color: white; margin-bottom: 6px; font-size: 1.6rem; }
+    .hero-text p  { color: rgba(255,255,255,0.8); margin: 0; font-size: 0.95rem; }
+    .hero-badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(6px);
+      border-radius: 50px;
+      padding: 8px 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── Stats Row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.07); }
+    .stat-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .stat-icon.blue  { background: #eff6ff; }
+    .stat-icon.amber { background: #fffbeb; }
+    .stat-icon.green { background: #f0fdf4; }
+    .stat-num  { font-size: 1.5rem; font-weight: 700; color: var(--text-dark); line-height: 1; }
+    .stat-lbl  { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── Tab System ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-header h2 { margin: 0; font-size: 1.2rem; }
+
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none; background: none;
+      border-radius: 7px;
+      font-family: inherit; font-size: 0.9rem; font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .tab-btn:hover { color: var(--text-dark); }
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--primary);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    /* ── File Grid ── */
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+    .file-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .file-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--primary);
+      box-shadow: 0 10px 20px rgba(37,99,235,0.1);
+    }
+    .file-card-top { display: flex; align-items: center; gap: 14px; }
+    .file-icon {
+      width: 52px; height: 52px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; flex-shrink: 0;
+    }
+    .file-icon.pdf  { background: #fef2f2; }
+    .file-icon.docx { background: #eff6ff; }
+    .file-name { font-weight: 600; font-size: 0.95rem; color: var(--text-dark); line-height: 1.35; }
+    .file-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .file-open-btn {
+      margin-top: auto;
+      padding: 9px 16px;
+      background: var(--primary);
+      color: white; border: none; border-radius: 8px;
+      font-family: inherit; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s;
+      text-align: center;
+    }
+    .file-open-btn:hover { opacity: 0.85; }
+
+    /* ── Quick Exam Section ── */
+    .exam-section { margin-top: 32px; }
+    .exam-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .exam-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .exam-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--complementary);
+      box-shadow: 0 10px 20px rgba(245,158,11,0.1);
+    }
+    .exam-card .icon { font-size: 36px; margin-bottom: 12px; }
+    .exam-card h3 { font-size: 1rem; margin-bottom: 6px; }
+    .exam-card p  { font-size: 0.82rem; margin-bottom: 14px; }
+    .exam-pill {
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: inline-block;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--text-muted);
+      border: 2px dashed var(--border); border-radius: 14px;
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* Notification badge */
+    .noti-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #ef4444; color: white; border-radius: 50%;
+      width: 18px; height: 18px; font-size: 0.7rem; font-weight: 700;
+      margin-left: auto;
+    }
+  </style>
 </head>
 <body class="page-wrapper">
   <div class="app-container">
+
+    <!-- ── Side Nav ── -->
     <nav class="side-nav">
       <div class="brand">
         <div>🎓 BTVTED System</div>
         <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Pre-Board Exam</div>
       </div>
-      
+
       <div class="nav-links">
         <button class="nav-link active" onclick="window.location.href='dashboard.html'">🏠 Dashboard</button>
+
         <button class="nav-link" onclick="toggleBox('notiBox')">
-          🔔 Notifications 
-          <span id="notiCount" style="display:none; background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-left: auto;">0</span>
+          🔔 Notifications
+          <span id="notiCount" class="noti-badge" style="display:none;">0</span>
         </button>
-        <div id="notiBox" style="display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 0.9rem;">
-            <div id="notiList" style="max-height: 150px; overflow-y: auto;"></div>
+        <div id="notiBox" style="display:none; background:var(--secondary); border:1px solid var(--border); padding:12px; border-radius:8px; margin-top:4px; font-size:0.88rem;">
+          <div id="notiList" style="max-height:160px; overflow-y:auto;"></div>
         </div>
 
-        <button class="nav-link" onclick="window.location.href='exams.html'">📋 Exams & Quizzes</button>
+        <button class="nav-link" onclick="window.location.href='exams.html'">📋 Exams &amp; Quizzes</button>
 
         <button class="nav-link" onclick="toggleBox('profileBox')">👤 Profile</button>
-        <div id="profileBox" style="display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 0.9rem;">
-            <strong id="profName">Student Name</strong>
-            <div id="profUsername" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px;"></div>
-            <strong>Latest Scores:</strong>
-            <ul id="profScores" style="list-style: none; padding: 0; margin-top: 5px; font-size: 0.85rem;"></ul>
+        <div id="profileBox" style="display:none; background:var(--secondary); border:1px solid var(--border); padding:12px; border-radius:8px; margin-top:4px; font-size:0.88rem;">
+          <strong id="profName">Student</strong>
+          <div id="profUsername" style="color:var(--text-muted); font-size:0.8rem; margin-bottom:10px;"></div>
+          <strong>Latest Scores:</strong>
+          <ul id="profScores" style="list-style:none; padding:0; margin-top:6px; font-size:0.85rem;"></ul>
         </div>
       </div>
 
       <div class="nav-footer">
-        <button class="btn-danger" id="logoutBtn" style="width: 100%;">Sign Out</button>
+        <button class="btn-danger" id="logoutBtn" style="width:100%;">Sign Out</button>
       </div>
     </nav>
 
+    <!-- ── Main Content ── -->
     <main class="main-content">
-      <div class="mb-4">
-        <h1>Select a Subject to Begin</h1>
-        <p>Choose one of the three subject areas below to start your practice exam.</p>
+
+      <!-- Hero Banner -->
+      <div class="dash-hero">
+        <div class="hero-text">
+          <h1>Welcome back, <span id="heroName">Student</span> 👋</h1>
+          <p>Browse your study materials or take a practice exam below.</p>
+        </div>
+        <div class="hero-badge">📅 BTVTED Pre-Board Prep</div>
       </div>
 
-      <div class="subjects-grid">
-        <div class="subject-card" onclick="viewSubject('major')">
-          <div class="icon">⚙️</div>
-          <h3>Major Subjects</h3>
-          <p>Technical and vocational trade-specific knowledge and applied skills.</p>
-          <div style="margin-top: 20px;">
-            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon blue">📂</div>
+          <div>
+            <div class="stat-num" id="statDocs">9</div>
+            <div class="stat-lbl">Study Materials</div>
           </div>
         </div>
-
-        <div class="subject-card" onclick="viewSubject('nonprof')">
-          <div class="icon">📚</div>
-          <h3>Non-Prof Subjects</h3>
-          <p>General education and non-professional competencies for board exam.</p>
-          <div style="margin-top: 20px;">
-            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
+        <div class="stat-card">
+          <div class="stat-icon amber">✏️</div>
+          <div>
+            <div class="stat-num" id="statExams">3</div>
+            <div class="stat-lbl">Exam Categories</div>
           </div>
         </div>
-
-        <div class="subject-card" onclick="viewSubject('prof')">
-          <div class="icon">🏫</div>
-          <h3>Prof Subjects</h3>
-          <p>Professional education theories, pedagogy, and teaching methodologies.</p>
-          <div style="margin-top: 20px;">
-            <span style="background: var(--secondary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">30 Questions | 60 mins</span>
+        <div class="stat-card">
+          <div class="stat-icon green">🏆</div>
+          <div>
+            <div class="stat-num" id="statScore">—</div>
+            <div class="stat-lbl">Best Score</div>
           </div>
         </div>
       </div>
+
+      <!-- Study Materials Section -->
+      <div class="section-header">
+        <h2>📖 Study Materials</h2>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-profd"   onclick="switchTab('profd')">🏫 Prof-Ed</button>
+        <button class="tab-btn"        id="tab-gened"   onclick="switchTab('gened')">📚 Gen-Ed</button>
+        <button class="tab-btn"        id="tab-major"   onclick="switchTab('major')">⚙️ Major</button>
+      </div>
+
+      <!-- Prof-Ed Files -->
+      <div id="pane-profd" class="tab-pane">
+        <div class="file-grid">
+          <a class="file-card" onclick="openDoc('Professional-Education/advanced-teaching-methods-for-the-technology-classroom_compress.pdf','Advanced Teaching Methods')">
+            <div class="file-card-top">
+              <div class="file-icon pdf">📄</div>
+              <div>
+                <div class="file-name">Advanced Teaching Methods for the Technology Classroom</div>
+                <div class="file-meta">PDF · Professional Education</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+          <a class="file-card" onclick="openDoc('Professional-Education/classroom-assessment-and-educational-measurement_compress.pdf','Classroom Assessment &amp; Educational Measurement')">
+            <div class="file-card-top">
+              <div class="file-icon pdf">📄</div>
+              <div>
+                <div class="file-name">Classroom Assessment &amp; Educational Measurement</div>
+                <div class="file-meta">PDF · Professional Education</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+          <a class="file-card" onclick="openDoc('Professional-Education/curriculum-development_compress.pdf','Curriculum Development')">
+            <div class="file-card-top">
+              <div class="file-icon pdf">📄</div>
+              <div>
+                <div class="file-name">Curriculum Development</div>
+                <div class="file-meta">PDF · Professional Education</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+          <a class="file-card" onclick="openDoc('Professional-Education/philosophical-foundations-of-education_compress.pdf','Philosophical Foundations of Education')">
+            <div class="file-card-top">
+              <div class="file-icon pdf">📄</div>
+              <div>
+                <div class="file-name">Philosophical Foundations of Education</div>
+                <div class="file-meta">PDF · Professional Education</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+        </div>
+      </div>
+
+      <!-- Gen-Ed Files -->
+      <div id="pane-gened" class="tab-pane" style="display:none;">
+        <div class="file-grid">
+          <a class="file-card" onclick="openDoc('General-Education/LIFE_AND_WORKS_OF_RIZAL.pdf','Life and Works of Rizal')">
+            <div class="file-card-top">
+              <div class="file-icon pdf">📄</div>
+              <div>
+                <div class="file-name">Life and Works of Rizal</div>
+                <div class="file-meta">PDF · General Education</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+          <a class="file-card" onclick="openDoc('General-Education/PURPOSIVE_COMMUNICATION_Prelim_Lessons.pdf','Purposive Communication – Prelim Lessons')">
+            <div class="file-card-top">
+              <div class="file-icon pdf">📄</div>
+              <div>
+                <div class="file-name">Purposive Communication – Prelim Lessons</div>
+                <div class="file-meta">PDF · General Education</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+          <a class="file-card" onclick="openDoc('General-Education/understanding-the-self_compress.pdf','Understanding the Self')">
+            <div class="file-card-top">
+              <div class="file-icon pdf">📄</div>
+              <div>
+                <div class="file-name">Understanding the Self</div>
+                <div class="file-meta">PDF · General Education</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+        </div>
+      </div>
+
+      <!-- Major Files -->
+      <div id="pane-major" class="tab-pane" style="display:none;">
+        <div class="file-grid">
+          <a class="file-card" onclick="openDoc('Major/Home_Economics.pdf','Home Economics')">
+            <div class="file-card-top">
+              <div class="file-icon pdf">📄</div>
+              <div>
+                <div class="file-name">Home Economics</div>
+                <div class="file-meta">PDF · Major Subjects</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+          <a class="file-card" onclick="openDoc('Major/INFORMATION_AND_COMMUNICATION_TECHNOLOGY.docx','Information and Communication Technology')">
+            <div class="file-card-top">
+              <div class="file-icon docx">📝</div>
+              <div>
+                <div class="file-name">Information and Communication Technology</div>
+                <div class="file-meta">DOCX · Major Subjects</div>
+              </div>
+            </div>
+            <button class="file-open-btn">Open Document →</button>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Exam Section -->
+      <div class="exam-section">
+        <div class="section-header">
+          <h2>✏️ Practice Exams</h2>
+        </div>
+        <div class="exam-cards">
+          <div class="exam-card" onclick="startExam('major')">
+            <div class="icon">⚙️</div>
+            <h3>Major Subjects</h3>
+            <p>Technical &amp; vocational trade-specific knowledge.</p>
+            <span class="exam-pill">30 Questions · 60 mins</span>
+          </div>
+          <div class="exam-card" onclick="startExam('nonprof')">
+            <div class="icon">📚</div>
+            <h3>Non-Prof Subjects</h3>
+            <p>General education &amp; non-professional competencies.</p>
+            <span class="exam-pill">30 Questions · 60 mins</span>
+          </div>
+          <div class="exam-card" onclick="startExam('prof')">
+            <div class="icon">🏫</div>
+            <h3>Prof-Ed Subjects</h3>
+            <p>Pedagogy, theories &amp; teaching methodologies.</p>
+            <span class="exam-pill">30 Questions · 60 mins</span>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
   <script>
-    // Guard: redirect to login if not authenticated
+    // ── Auth Guard ──
     const username = localStorage.getItem("username");
-    if (!username) {
-      window.location.href = "index.html";
-    }
+    if (!username) window.location.href = "index.html";
 
-    document.getElementById("profName").textContent = localStorage.getItem("studentName") || "Student";
+    // ── Populate names ──
+    const studentName = localStorage.getItem("studentName") || "Student";
+    document.getElementById("heroName").textContent     = studentName;
+    document.getElementById("profName").textContent     = studentName;
     document.getElementById("profUsername").textContent = "@" + username;
 
+    // ── Tab Switcher ──
+    function switchTab(id) {
+      ["profd","gened","major"].forEach(t => {
+        document.getElementById("tab-" + t).classList.toggle("active", t === id);
+        document.getElementById("pane-" + t).style.display = t === id ? "block" : "none";
+      });
+    }
+
+    // ── Toggle sidebar dropdown boxes ──
     function toggleBox(boxId) {
-        document.getElementById('notiBox').style.display = 'none';
-        document.getElementById('profileBox').style.display = 'none';
-        if (boxId) document.getElementById(boxId).style.display = 'block';
+      const box = document.getElementById(boxId);
+      const isOpen = box.style.display !== "none";
+      // Close all first
+      document.getElementById("notiBox").style.display    = "none";
+      document.getElementById("profileBox").style.display = "none";
+      if (!isOpen) box.style.display = "block";
     }
 
-    // Close boxes logic removed due to inline side-nav integration
-    function toggleBox(boxId) {
-        const box = document.getElementById(boxId);
-        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    // ── Open document in viewer ──
+    function openDoc(filePath, title) {
+      // Determine type from extension
+      const ext = filePath.split('.').pop().toLowerCase();
+      const type = (ext === 'pdf') ? 'pdf' : ext;
+
+      localStorage.setItem("viewDocId",    "direct");  // placeholder; viewer catch-handler loads doc anyway
+      localStorage.setItem("viewDocPath",  filePath);
+      localStorage.setItem("viewDocType",  type);
+      localStorage.setItem("viewDocTitle", title);
+      window.location.href = "viewer.html";
     }
 
-    // Fetch Profile Data (Scores & Notifications)
-    async function loadProfile() {
-        try {
-            const res = await fetch(`api/student.php?action=get_profile&username=${username}`);
-            const data = await res.json();
-            
-            if (data.status === 'success') {
-                // Notifications
-                const notiList = document.getElementById("notiList");
-                if (data.notifications && data.notifications.length > 0) {
-                    document.getElementById("notiCount").textContent = data.notifications.length;
-                    document.getElementById("notiCount").style.display = "inline";
-                    notiList.innerHTML = data.notifications.map(n => `<div style="padding: 5px 0; border-bottom: 1px solid #f3f4f6;">${n.message} <br><small style="color:#9ca3af;">${new Date(n.created_at).toLocaleDateString()}</small></div>`).join('');
-                } else {
-                    notiList.innerHTML = "<p style='color: #6b7280;'>No new notifications.</p>";
-                }
-
-                // Scores
-                const sList = document.getElementById("profScores");
-                if (data.scores && data.scores.length > 0) {
-                    sList.innerHTML = data.scores.map(s => `<li>${s.subject_type}: <strong>${s.score}/${s.total}</strong></li>`).join('');
-                } else {
-                    sList.innerHTML = "<li style='color: #6b7280;'>No exams taken yet.</li>";
-                }
-            }
-        } catch(e) { console.error(e); }
+    // ── Start Exam ──
+    function startExam(subject) {
+      localStorage.setItem("selectedSubject", subject);
+      window.location.href = "subject.html";
     }
-    loadProfile();
 
-    document.getElementById("logoutBtn").addEventListener("click", function(e) {
-      e.preventDefault();
+    // ── Logout ──
+    document.getElementById("logoutBtn").addEventListener("click", function() {
       localStorage.clear();
       window.location.href = "index.html";
     });
 
-    function viewSubject(subject) {
-      localStorage.setItem("selectedSubject", subject);
-      window.location.href = "subject.html";
+    // ── Load Profile (scores + notifications) ──
+    async function loadProfile() {
+      try {
+        const res  = await fetch(`api/student.php?action=get_profile&username=${encodeURIComponent(username)}`);
+        const data = await res.json();
+        if (data.status === "success") {
+          // Notifications
+          const notiList = document.getElementById("notiList");
+          if (data.notifications && data.notifications.length > 0) {
+            document.getElementById("notiCount").textContent    = data.notifications.length;
+            document.getElementById("notiCount").style.display  = "inline-flex";
+            notiList.innerHTML = data.notifications.map(n =>
+              `<div style="padding:6px 0; border-bottom:1px solid var(--border);">${n.message}<br>
+               <small style="color:var(--text-muted);">${new Date(n.created_at).toLocaleDateString()}</small></div>`
+            ).join("");
+          } else {
+            notiList.innerHTML = `<p style="color:var(--text-muted); margin:0;">No new notifications.</p>`;
+          }
+
+          // Scores
+          const sList = document.getElementById("profScores");
+          if (data.scores && data.scores.length > 0) {
+            sList.innerHTML = data.scores.map(s =>
+              `<li style="padding:3px 0;">${s.subject_type}: <strong>${s.score}/${s.total}</strong></li>`
+            ).join("");
+            // Best score for stat card
+            const best = Math.max(...data.scores.map(s => Math.round((s.score / s.total) * 100)));
+            document.getElementById("statScore").textContent = best + "%";
+          } else {
+            sList.innerHTML = `<li style="color:var(--text-muted);">No exams taken yet.</li>`;
+          }
+        }
+      } catch(e) { console.error(e); }
     }
+    loadProfile();
   </script>
 </body>
 </html>
