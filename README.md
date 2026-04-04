@@ -1,4 +1,4 @@
-# BTVTED System (Beta)
+# BTVTED System 
 
 > [!IMPORTANT]
 > This system is currently **UNDER PRODUCTION**. Core features for Reviewer Management, Reading Progress, and Scheduled Exams are implemented. The next phase focuses on enhancing Exam Logic, system-wide responsiveness, and robust error handling.
